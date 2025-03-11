@@ -1,5 +1,3 @@
-/* eslint-disable jsx-a11y/no-static-element-interactions */
-/* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/accessible-emoji */
 import React, { useState } from 'react';
 import './App.scss';
@@ -35,6 +33,7 @@ function getPreparedProdcuts(
     filterCategoryField,
     searchQuery,
     sortingOrder,
+    selectedCategories,
   },
 ) {
   let preparedProducts = [...productsList];
@@ -84,6 +83,12 @@ function getPreparedProdcuts(
     );
   }
 
+  if (selectedCategories.length > 0) {
+    preparedProducts = preparedProducts.filter(product =>
+      selectedCategories.includes(product.category.title),
+    );
+  }
+
   return preparedProducts;
 }
 
@@ -93,6 +98,7 @@ export const App = () => {
   const [filterCategoryField, setFilterCategoryField] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortingOrder, setSortingOrder] = useState(0);
+  const [selectedCategories, setSelectedCategories] = useState([]);
 
   const visibleProducts = getPreparedProdcuts(products, {
     sortField,
@@ -100,6 +106,7 @@ export const App = () => {
     filterCategoryField,
     searchQuery,
     sortingOrder,
+    selectedCategories,
   });
 
   const resetFilters = () => {
@@ -108,6 +115,7 @@ export const App = () => {
     setFilterCategoryField('');
     setSearchQuery('');
     setSortingOrder(0);
+    setSelectedCategories([]);
   };
 
   const getSortingOrderChanged = () => {
@@ -123,6 +131,16 @@ export const App = () => {
         break;
       default:
         setSortingOrder(0);
+    }
+  };
+
+  const onCategoryClick = title => {
+    if (selectedCategories.includes(title)) {
+      setSelectedCategories(
+        selectedCategories.filter(category => category !== title),
+      );
+    } else {
+      setSelectedCategories([...selectedCategories, title]);
     }
   };
 
@@ -195,10 +213,10 @@ export const App = () => {
                 href="#/"
                 data-cy="AllCategories"
                 className={cn('button mr-6', {
-                  'is-outlined': filterCategoryField,
-                  'is-success': !filterCategoryField,
+                  'is-success': selectedCategories.length === 0,
+                  'is-success is-outlined': selectedCategories.length > 0,
                 })}
-                onClick={resetFilters}
+                onClick={() => setSelectedCategories([])}
               >
                 All
               </a>
@@ -208,10 +226,10 @@ export const App = () => {
                   key={category.id}
                   data-cy="Category"
                   className={cn('button mr-2 my-1', {
-                    'is-info': filterCategoryField === category.title,
+                    'is-info': selectedCategories.includes(category.title),
                   })}
                   href="#/"
-                  onClick={() => setFilterCategoryField(category.title)}
+                  onClick={() => onCategoryClick(category.title)}
                 >
                   {category.title}
                 </a>
@@ -259,9 +277,15 @@ export const App = () => {
                           <i
                             data-cy="SortIcon"
                             className={cn({
-                              'fas fa-sort': sortingOrder === 0,
-                              'fas fa-sort-down': sortingOrder === -1,
-                              'fas fa-sort-up': sortingOrder === 1,
+                              'fas fa-sort':
+                                sortingOrder === 0 ||
+                                sortField !== SORT_FIELD_ID,
+                              'fas fa-sort-down':
+                                sortingOrder === -1 &&
+                                sortField === SORT_FIELD_ID,
+                              'fas fa-sort-up':
+                                sortingOrder === 1 &&
+                                sortField === SORT_FIELD_ID,
                             })}
                           />
                         </span>
@@ -283,9 +307,15 @@ export const App = () => {
                           <i
                             data-cy="SortIcon"
                             className={cn({
-                              'fas fa-sort': sortingOrder === 0,
-                              'fas fa-sort-down': sortingOrder === -1,
-                              'fas fa-sort-up': sortingOrder === 1,
+                              'fas fa-sort':
+                                sortingOrder === 0 ||
+                                sortField !== SORT_FIELD_PRODUCT,
+                              'fas fa-sort-down':
+                                sortingOrder === -1 &&
+                                sortField === SORT_FIELD_PRODUCT,
+                              'fas fa-sort-up':
+                                sortingOrder === 1 &&
+                                sortField === SORT_FIELD_PRODUCT,
                             })}
                           />
                         </span>
@@ -307,9 +337,15 @@ export const App = () => {
                           <i
                             data-cy="SortIcon"
                             className={cn({
-                              'fas fa-sort': sortingOrder === 0,
-                              'fas fa-sort-down': sortingOrder === -1,
-                              'fas fa-sort-up': sortingOrder === 1,
+                              'fas fa-sort':
+                                sortingOrder === 0 ||
+                                sortField !== SORT_FIELD_CATEGORY,
+                              'fas fa-sort-down':
+                                sortingOrder === -1 &&
+                                sortField === SORT_FIELD_CATEGORY,
+                              'fas fa-sort-up':
+                                sortingOrder === 1 &&
+                                sortField === SORT_FIELD_CATEGORY,
                             })}
                           />
                         </span>
@@ -331,9 +367,15 @@ export const App = () => {
                           <i
                             data-cy="SortIcon"
                             className={cn({
-                              'fas fa-sort': sortingOrder === 0,
-                              'fas fa-sort-down': sortingOrder === -1,
-                              'fas fa-sort-up': sortingOrder === 1,
+                              'fas fa-sort':
+                                sortingOrder === 0 ||
+                                sortField !== SORT_FIELD_USER,
+                              'fas fa-sort-down':
+                                sortingOrder === -1 &&
+                                sortField === SORT_FIELD_USER,
+                              'fas fa-sort-up':
+                                sortingOrder === 1 &&
+                                sortField === SORT_FIELD_USER,
                             })}
                           />
                         </span>
