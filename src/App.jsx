@@ -1,3 +1,5 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/accessible-emoji */
 import React, { useState } from 'react';
 import './App.scss';
@@ -20,39 +22,55 @@ const products = productsFromServer.map(product => {
   };
 });
 
-const SORT_FILED_ID = 'id';
-const SORT_FILED_PRODUCT = 'product';
-const SORT_FILED_CATEGORY = 'category';
-const SORT_FILED_USER = 'user';
+const SORT_FIELD_ID = 'id';
+const SORT_FIELD_PRODUCT = 'product';
+const SORT_FIELD_CATEGORY = 'category';
+const SORT_FIELD_USER = 'user';
 
 function getPreparedProdcuts(
   productsList,
-  { sortField, filterField, searchQuery },
+  {
+    sortField,
+    filterUserField,
+    filterCategoryField,
+    searchQuery,
+    sortingOrder,
+  },
 ) {
   let preparedProducts = [...productsList];
 
   if (sortField) {
     preparedProducts.sort((pr1, pr2) => {
       switch (sortField) {
-        case SORT_FILED_PRODUCT:
-        case SORT_FILED_CATEGORY:
-        case SORT_FILED_USER:
-          return pr1.localeCompare(pr2);
-        case SORT_FILED_ID:
-          return pr1 - pr2;
+        case SORT_FIELD_PRODUCT:
+          return pr1.name.localeCompare(pr2.name) * sortingOrder;
+        case SORT_FIELD_CATEGORY:
+          return (
+            pr1.category.title.localeCompare(pr2.category.title) * sortingOrder
+          );
+        case SORT_FIELD_USER:
+          return pr1.user.name.localeCompare(pr2.user.name) * sortingOrder;
+        case SORT_FIELD_ID:
+          return (pr1.id - pr2.id) * sortingOrder;
         default:
           return 0;
       }
     });
   }
 
-  if (filterField) {
+  if (filterUserField) {
     preparedProducts = preparedProducts.filter(product => {
-      if (filterField === product.user.name) {
+      if (filterUserField === product.user.name) {
         return true;
       }
 
-      if (filterField === product.category.title) {
+      return false;
+    });
+  }
+
+  if (filterCategoryField) {
+    preparedProducts = preparedProducts.filter(product => {
+      if (filterCategoryField === product.category.title) {
         return true;
       }
 
@@ -61,9 +79,8 @@ function getPreparedProdcuts(
   }
 
   if (searchQuery) {
-    preparedProducts = preparedProducts.filter(
-      product => product.name.toLowerCase().includes(searchQuery.toLowerCase()),
-      // eslint-disable-next-line function-paren-newline
+    preparedProducts = preparedProducts.filter(product =>
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }
 
@@ -72,22 +89,41 @@ function getPreparedProdcuts(
 
 export const App = () => {
   const [sortField, setSortField] = useState('');
-  const [filterField, setFilterField] = useState('');
+  const [filterUserField, setFilterUserField] = useState('');
+  const [filterCategoryField, setFilterCategoryField] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortingOrder, setSortingOrder] = useState(0);
+
   const visibleProducts = getPreparedProdcuts(products, {
     sortField,
-    filterField,
+    filterUserField,
+    filterCategoryField,
     searchQuery,
+    sortingOrder,
   });
 
   const resetFilters = () => {
     setSortField('');
-    setFilterField('');
+    setFilterUserField('');
+    setFilterCategoryField('');
     setSearchQuery('');
+    setSortingOrder(0);
   };
 
-  const handleSearchChange = event => {
-    setSearchQuery(event.target.value);
+  const getSortingOrderChanged = () => {
+    switch (sortingOrder) {
+      case 0:
+        setSortingOrder(1);
+        break;
+      case 1:
+        setSortingOrder(-1);
+        break;
+      case -1:
+        setSortingOrder(0);
+        break;
+      default:
+        setSortingOrder(0);
+    }
   };
 
   return (
@@ -104,7 +140,7 @@ export const App = () => {
                 data-cy="FilterAllUsers"
                 href="#/"
                 onClick={resetFilters}
-                className={cn({ 'is-active': !filterField })}
+                className={cn({ 'is-active': !filterUserField })}
               >
                 All
               </a>
@@ -114,8 +150,10 @@ export const App = () => {
                   key={user.id}
                   data-cy="FilterUser"
                   href="#/"
-                  className={cn({ 'is-active': filterField === user.name })}
-                  onClick={() => setFilterField(user.name)}
+                  className={cn({
+                    'is-active': filterUserField === user.name,
+                  })}
+                  onClick={() => setFilterUserField(user.name)}
                 >
                   {user.name}
                 </a>
@@ -130,7 +168,9 @@ export const App = () => {
                   className="input"
                   placeholder="Search"
                   value={searchQuery}
-                  onChange={handleSearchChange}
+                  onChange={event => {
+                    setSearchQuery(event.target.value);
+                  }}
                 />
 
                 <span className="icon is-left">
@@ -154,8 +194,9 @@ export const App = () => {
               <a
                 href="#/"
                 data-cy="AllCategories"
-                className={cn('button is-success mr-6', {
-                  'is-outlined': !filterField,
+                className={cn('button mr-6', {
+                  'is-outlined': filterCategoryField,
+                  'is-success': !filterCategoryField,
                 })}
                 onClick={resetFilters}
               >
@@ -167,10 +208,10 @@ export const App = () => {
                   key={category.id}
                   data-cy="Category"
                   className={cn('button mr-2 my-1', {
-                    'is-outlined': filterField === category.title,
+                    'is-info': filterCategoryField === category.title,
                   })}
                   href="#/"
-                  onClick={() => setFilterField(category.title)}
+                  onClick={() => setFilterCategoryField(category.title)}
                 >
                   {category.title}
                 </a>
@@ -207,9 +248,22 @@ export const App = () => {
                   <th>
                     <span className="is-flex is-flex-wrap-nowrap">
                       ID
-                      <a href="#/">
+                      <a
+                        href="#/"
+                        onClick={() => {
+                          setSortField(SORT_FIELD_ID);
+                          getSortingOrderChanged();
+                        }}
+                      >
                         <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort" />
+                          <i
+                            data-cy="SortIcon"
+                            className={cn({
+                              'fas fa-sort': sortingOrder === 0,
+                              'fas fa-sort-down': sortingOrder === -1,
+                              'fas fa-sort-up': sortingOrder === 1,
+                            })}
+                          />
                         </span>
                       </a>
                     </span>
@@ -218,9 +272,22 @@ export const App = () => {
                   <th>
                     <span className="is-flex is-flex-wrap-nowrap">
                       Product
-                      <a href="#/">
+                      <a
+                        href="#/"
+                        onClick={() => {
+                          setSortField(SORT_FIELD_PRODUCT);
+                          getSortingOrderChanged();
+                        }}
+                      >
                         <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort-down" />
+                          <i
+                            data-cy="SortIcon"
+                            className={cn({
+                              'fas fa-sort': sortingOrder === 0,
+                              'fas fa-sort-down': sortingOrder === -1,
+                              'fas fa-sort-up': sortingOrder === 1,
+                            })}
+                          />
                         </span>
                       </a>
                     </span>
@@ -229,9 +296,22 @@ export const App = () => {
                   <th>
                     <span className="is-flex is-flex-wrap-nowrap">
                       Category
-                      <a href="#/">
+                      <a
+                        href="#/"
+                        onClick={() => {
+                          setSortField(SORT_FIELD_CATEGORY);
+                          getSortingOrderChanged();
+                        }}
+                      >
                         <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort-up" />
+                          <i
+                            data-cy="SortIcon"
+                            className={cn({
+                              'fas fa-sort': sortingOrder === 0,
+                              'fas fa-sort-down': sortingOrder === -1,
+                              'fas fa-sort-up': sortingOrder === 1,
+                            })}
+                          />
                         </span>
                       </a>
                     </span>
@@ -240,9 +320,22 @@ export const App = () => {
                   <th>
                     <span className="is-flex is-flex-wrap-nowrap">
                       User
-                      <a href="#/">
+                      <a
+                        href="#/"
+                        onClick={() => {
+                          setSortField(SORT_FIELD_USER);
+                          getSortingOrderChanged();
+                        }}
+                      >
                         <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort" />
+                          <i
+                            data-cy="SortIcon"
+                            className={cn({
+                              'fas fa-sort': sortingOrder === 0,
+                              'fas fa-sort-down': sortingOrder === -1,
+                              'fas fa-sort-up': sortingOrder === 1,
+                            })}
+                          />
                         </span>
                       </a>
                     </span>
